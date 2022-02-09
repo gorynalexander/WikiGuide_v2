@@ -6,8 +6,11 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import com.santo.wikiguide.databinding.FragmentPlacesBinding
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collect
+import timber.log.Timber
 
 @AndroidEntryPoint
 class PlacesFragment : Fragment() {
@@ -29,6 +32,16 @@ class PlacesFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewModel.loadPlaces()
+        observeViewModel()
+    }
+
+    private fun observeViewModel() {
+        lifecycleScope.launchWhenResumed {
+            viewModel.locationFlow().collect {
+                Timber.d("location here $it")
+            }
+        }
+
     }
 
     override fun onDestroyView() {

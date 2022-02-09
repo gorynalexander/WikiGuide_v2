@@ -1,7 +1,10 @@
 package com.santo.wikiguide.di
 
-import com.santo.wikiguide.data.PlacesRepository
+import com.santo.wikiguide.data.repository.PlacesRepository
 import com.santo.wikiguide.data.network.WikiApiService
+import com.santo.wikiguide.data.repository.LocationRepository
+import com.santo.wikiguide.data.repository.LocationRepositoryImpl
+import com.santo.wikiguide.data.repository.PlacesRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -45,5 +48,9 @@ object ApiModule {
 
     @Singleton
     @Provides
-    fun providesRepository(apiService: WikiApiService) = PlacesRepository(apiService)
+    fun providesPlacesRepository(apiService: WikiApiService): PlacesRepository = PlacesRepositoryImpl(apiService)
+
+    @Singleton
+    @Provides
+    fun providesLocationRepository(): LocationRepository = LocationRepositoryImpl()
 }
