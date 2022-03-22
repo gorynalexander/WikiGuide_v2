@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">WikiGuide</string>
+    <string name="mapbox_access_token">pk.eyJ1Ijoia3lyeWx2ZXJlbWlvdiIsImEiOiJjbDEyNGhvY2gwM251M2tzMDhlOHE1aXAxIn0.r_PHqSSTrolmC5HBShznQw</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

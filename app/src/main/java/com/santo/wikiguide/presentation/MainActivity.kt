@@ -16,7 +16,10 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import com.mapbox.maps.MapView
+import com.mapbox.maps.Style
 import com.santo.wikiguide.R
+import com.santo.wikiguide.presentation.map.MapFragment
 import com.santo.wikiguide.presentation.places.PlacesFragment
 import com.santo.wikiguide.util.permissions.PermissionChecker
 import dagger.hilt.android.AndroidEntryPoint
@@ -34,11 +37,13 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var permissionChecker: PermissionChecker
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         initLocation()
-        supportFragmentManager.beginTransaction().replace(R.id.container, PlacesFragment()).commit()
+//        supportFragmentManager.beginTransaction().replace(R.id.container, PlacesFragment()).commit()
+        supportFragmentManager.beginTransaction().replace(R.id.container, MapFragment()).commit()
     }
 
     override fun onPause() {
