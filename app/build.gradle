@@ -59,5 +59,7 @@ dependencies {
     implementation 'com.github.fondesa:kpermissions:3.3.0'
     implementation 'com.github.fondesa:kpermissions-coroutines:3.3.0'
     implementation 'com.jakewharton.timber:timber:5.0.1'
+
     implementation 'com.mapbox.maps:android:10.3.0'
+    implementation "com.mapbox.search:mapbox-search-android-ui:1.0.0-beta.27"
 }

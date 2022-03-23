@@ -29,26 +29,24 @@ class MapFragment : Fragment() {
 
     private lateinit var binding: FragmentMapBinding
 
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-
-        super.onCreate(savedInstanceState)
-//        mapView =  getView()?.findViewById(R.id.mapView)
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         // Inflate the layout for this fragment
-
         binding = FragmentMapBinding.inflate(inflater)
-        mapView = binding.mapView
+        return binding.root
+    }
 
-//        mapView?.getMapboxMap()?.loadStyleUri(Style.MAPBOX_STREETS)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        initMap()
+    }
+
+    private fun initMap(){
+        mapView = binding.mapView
         mapView.getMapboxMap().loadStyleUri(
             Style.MAPBOX_STREETS,
-            // After the style is loaded, initialize the Location component.
             object : Style.OnStyleLoaded {
                 override fun onStyleLoaded(style: Style) {
                     mapView.location.updateSettings {
@@ -58,13 +56,8 @@ class MapFragment : Fragment() {
                 }
             }
         )
-        val bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.red_marker);
-
-        val annotationApi = mapView.annotations
         addAnnotationToMap(18.06, 59.31)
         addAnnotationToMap(10.06, 59.10)
-        return binding.root
-//        return inflater.inflate(R.layout.fragment_map, container, false)
     }
 
     private fun addAnnotationToMap(longitude:Double, latitude:Double) {
