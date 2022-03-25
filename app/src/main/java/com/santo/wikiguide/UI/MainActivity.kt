@@ -1,4 +1,4 @@
-package com.santo.wikiguide.presentation
+package com.santo.wikiguide.UI
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -16,11 +16,8 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
-import com.mapbox.maps.MapView
-import com.mapbox.maps.Style
 import com.santo.wikiguide.R
-import com.santo.wikiguide.presentation.map.MapFragment
-import com.santo.wikiguide.presentation.places.PlacesFragment
+import com.santo.wikiguide.UI.map.MapFragment
 import com.santo.wikiguide.util.permissions.PermissionChecker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch

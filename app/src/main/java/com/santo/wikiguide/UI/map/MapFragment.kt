@@ -1,33 +1,47 @@
-package com.santo.wikiguide.presentation.map
+package com.santo.wikiguide.UI.map
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.annotation.DrawableRes
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import com.mapbox.geojson.Point
+import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
+import com.mapbox.maps.MapboxMap
 import com.mapbox.maps.Style
+import com.mapbox.maps.loader.MapboxMaps
+import com.mapbox.maps.plugin.Plugin
 import com.mapbox.maps.plugin.annotation.annotations
 import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
+import com.mapbox.maps.plugin.gestures.addOnMapClickListener
+import com.mapbox.maps.plugin.gestures.addOnMapLongClickListener
+import com.mapbox.maps.plugin.gestures.gestures
+import com.mapbox.maps.plugin.locationcomponent.OnIndicatorPositionChangedListener
 import com.mapbox.maps.plugin.locationcomponent.location
+import com.mapbox.search.MapboxSearchSdk
 import com.santo.wikiguide.R
 import com.santo.wikiguide.databinding.FragmentMapBinding
-import com.santo.wikiguide.databinding.FragmentPlacesBinding
+import dagger.hilt.android.AndroidEntryPoint
 
+
+@AndroidEntryPoint
 class MapFragment : Fragment() {
     private lateinit var mapView: MapView
 
     private lateinit var binding: FragmentMapBinding
+
+    private val viewModel: MapFragmentViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -53,11 +67,40 @@ class MapFragment : Fragment() {
                         enabled = true
                         pulsingEnabled = true
                     }
+
                 }
             }
         )
-        addAnnotationToMap(18.06, 59.31)
-        addAnnotationToMap(10.06, 59.10)
+
+
+
+        mapView.getMapboxMap().addOnMapLongClickListener{
+                point ->
+            addAnnotationToMap(point.longitude(),point.latitude())
+            true
+        }
+
+
+        // Get the user's location as coordinates
+//      Round's screen to the direction of user's look
+//      Problem: always round back
+
+//        val onIndicatorBearingChangedListener = OnIndicatorBearingChangedListener {
+//            mapView.getMapboxMap().setCamera(CameraOptions.Builder().bearing(it).build())
+//        }
+
+        val onIndicatorPositionChangedListener = OnIndicatorPositionChangedListener {
+            mapView.getMapboxMap().setCamera(CameraOptions.Builder().center(it).build())
+            mapView.gestures.focalPoint = mapView.getMapboxMap().pixelForCoordinate(it)
+        }
+
+// Pass the user's location to camera
+        mapView.location.addOnIndicatorPositionChangedListener(onIndicatorPositionChangedListener)
+//        mapView.location.addOnIndicatorBearingChangedListener(onIndicatorBearingChangedListener)
+
+        addAnnotationToMap(30.748458862304688, 46.44748306274414)
+        addAnnotationToMap(30.848458862304688, 46.55748306274414)
+        viewModel.getPOIs()
     }
 
     private fun addAnnotationToMap(longitude:Double, latitude:Double) {

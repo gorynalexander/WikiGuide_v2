@@ -1,4 +1,4 @@
-package com.santo.wikiguide.presentation
+package com.santo.wikiguide.UI
 
 import android.location.Location
 import androidx.lifecycle.ViewModel
