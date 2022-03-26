@@ -5,7 +5,10 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.location.Location
+import android.location.LocationListener
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,6 +17,8 @@ import androidx.annotation.DrawableRes
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Observer
+import com.mapbox.android.gestures.MoveGestureDetector
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
@@ -24,6 +29,7 @@ import com.mapbox.maps.plugin.Plugin
 import com.mapbox.maps.plugin.annotation.annotations
 import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
+import com.mapbox.maps.plugin.gestures.OnMoveListener
 import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.addOnMapLongClickListener
 import com.mapbox.maps.plugin.gestures.gestures
@@ -33,10 +39,12 @@ import com.mapbox.search.MapboxSearchSdk
 import com.santo.wikiguide.R
 import com.santo.wikiguide.databinding.FragmentMapBinding
 import dagger.hilt.android.AndroidEntryPoint
+import timber.log.Timber
 
 
 @AndroidEntryPoint
 class MapFragment : Fragment() {
+
     private lateinit var mapView: MapView
 
     private lateinit var binding: FragmentMapBinding
@@ -67,7 +75,6 @@ class MapFragment : Fragment() {
                         enabled = true
                         pulsingEnabled = true
                     }
-
                 }
             }
         )
@@ -76,6 +83,8 @@ class MapFragment : Fragment() {
 
         mapView.getMapboxMap().addOnMapLongClickListener{
                 point ->
+//          Add UI
+            viewModel.getReverseGeocodingResult(point)
             addAnnotationToMap(point.longitude(),point.latitude())
             true
         }
@@ -100,8 +109,29 @@ class MapFragment : Fragment() {
 
         addAnnotationToMap(30.748458862304688, 46.44748306274414)
         addAnnotationToMap(30.848458862304688, 46.55748306274414)
-        viewModel.getPOIs()
+        viewModel.getPOIs("cafe",10)
+        viewModel.poiList.observe(viewLifecycleOwner, Observer {
+            poiList->
+            for(item in poiList){
+                item.coordinate?.let { addAnnotationToMap(it.longitude(), it.latitude()) }
+                Timber.i("Item name: ${item.name}; and address: ${item.address}")
+            }
+        })
+
+        mapView.gestures.addOnMoveListener(object : OnMoveListener {
+            override fun onMoveBegin(detector: MoveGestureDetector) {
+                mapView.location
+                    .removeOnIndicatorPositionChangedListener(onIndicatorPositionChangedListener)
+            }
+
+            override fun onMove(detector: MoveGestureDetector): Boolean {
+                return false
+            }
+
+            override fun onMoveEnd(detector: MoveGestureDetector) {}
+        })
     }
+
 
     private fun addAnnotationToMap(longitude:Double, latitude:Double) {
 // Create an instance of the Annotation API and get the PointAnnotationManager.

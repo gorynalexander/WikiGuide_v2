@@ -4,6 +4,7 @@ package com.santo.wikiguide.data.network
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.MutableLiveData
 import com.mapbox.search.CategorySearchEngine
 import com.mapbox.search.CategorySearchOptions
 import com.mapbox.search.MapboxSearchSdk
@@ -13,7 +14,7 @@ import com.mapbox.search.SearchRequestTask
 import com.mapbox.search.result.SearchResult
 import timber.log.Timber
 
-class SearchClass() {
+class CategorySearchClass() {
 
     private var categorySearchEngine: CategorySearchEngine
     private lateinit var searchRequestTask: SearchRequestTask
@@ -22,7 +23,12 @@ class SearchClass() {
         categorySearchEngine = MapboxSearchSdk.getCategorySearchEngine()
     }
 
-    public fun getPlacesByCategory(){
+
+    fun getPlacesByCategory(
+        category_name: String,
+        limit: Int,
+        resultListener:SearchResultListener
+    ){
         Timber.i("Begin search")
 
         val searchCallback: SearchCallback = object : SearchCallback {
@@ -31,6 +37,7 @@ class SearchClass() {
                 if (results.isEmpty()) {
                     Timber.i("No category search results")
                 } else {
+                    resultListener.onSearchResult(results)
                     Timber.i("Category search results: " + results)
                 }
             }
@@ -40,10 +47,13 @@ class SearchClass() {
         }
 
         searchRequestTask = categorySearchEngine.search(
-            "cafe",
-            CategorySearchOptions(limit = 2),
+            category_name,
+            CategorySearchOptions(limit = limit),
             searchCallback
         )
+    }
+    fun interface SearchResultListener{
+        fun onSearchResult(results:List<SearchResult>)
     }
 
 // Will it work? Should work like onDestroy()
