@@ -1,4 +1,4 @@
-package com.santo.wikiguide.presentation.places
+package com.santo.wikiguide.UI.places
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -9,7 +9,6 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.santo.wikiguide.databinding.FragmentPlacesBinding
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.collect
 import timber.log.Timber
 
 @AndroidEntryPoint
