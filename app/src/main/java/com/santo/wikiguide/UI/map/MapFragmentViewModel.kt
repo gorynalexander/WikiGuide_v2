@@ -3,6 +3,7 @@ package com.santo.wikiguide.UI.map
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.mapbox.geojson.Feature
 import com.mapbox.geojson.Point
 import com.mapbox.search.result.SearchResult
 import com.santo.wikiguide.data.network.CategorySearchClass
@@ -10,6 +11,7 @@ import com.santo.wikiguide.data.network.ReverseGeocodingClass
 import com.santo.wikiguide.data.repository.LocationRepository
 import com.santo.wikiguide.data.repository.PlacesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.concurrent.CopyOnWriteArrayList
 import javax.inject.Inject
 
 
@@ -33,4 +35,6 @@ class MapFragmentViewModel @Inject constructor(
     fun getReverseGeocodingResult(point: Point){
         reverseGeocodingClass.getReverseGeocodingResult(point)
     }
+
+
 }
