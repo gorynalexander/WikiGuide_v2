@@ -118,8 +118,6 @@ class MapFragment : Fragment(),OnMapClickListener  {
         routeArrowView = MapboxRouteArrowView(routeArrowOptions)
 
         initMap()
-        val mapboxDirections= MapboxDirections.builder().build()
-
 
         binding.inputCategoryName.setText("cafe")
         binding.inputCategoryLimit.setText("5")
