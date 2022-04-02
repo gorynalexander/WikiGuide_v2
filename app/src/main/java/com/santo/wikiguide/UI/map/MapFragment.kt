@@ -11,10 +11,8 @@ import android.widget.TextView
 import androidx.asynclayoutinflater.view.AsyncLayoutInflater
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Observer
 import com.mapbox.android.gestures.MoveGestureDetector
 import com.mapbox.api.directions.v5.DirectionsCriteria
-import com.mapbox.api.directions.v5.MapboxDirections
 import com.mapbox.api.directions.v5.models.DirectionsRoute
 import com.mapbox.api.directions.v5.models.RouteOptions
 import com.mapbox.bindgen.Expected
@@ -53,7 +51,6 @@ import com.mapbox.navigation.ui.maps.route.line.api.MapboxRouteLineView
 import com.mapbox.navigation.ui.maps.route.line.model.MapboxRouteLineOptions
 import com.mapbox.navigation.ui.maps.route.line.model.RouteLine
 import com.mapbox.search.result.SearchResult
-import com.mapbox.turf.TurfMeasurement.destination
 import com.santo.wikiguide.R
 import com.santo.wikiguide.databinding.FragmentMapBinding
 import dagger.hilt.android.AndroidEntryPoint
@@ -71,11 +68,13 @@ class MapFragment : Fragment(),OnMapClickListener  {
     private lateinit var viewAnnotationManager: ViewAnnotationManager
 
 
+
     private lateinit var mapboxNavigation: MapboxNavigation
     private val replayLocationEngine = ReplayLocationEngine(MapboxReplayer())
-
+    private lateinit var onIndicatorPositionChangedListener:OnIndicatorPositionChangedListener
 
     private val viewModel: MapFragmentViewModel by viewModels()
+    private val points:ArrayList<Point> =ArrayList()
 
 
     private var markerWidth = 0
@@ -96,27 +95,7 @@ class MapFragment : Fragment(),OnMapClickListener  {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        mapboxNavigation = if (MapboxNavigationProvider.isCreated()) {
-            MapboxNavigationProvider.retrieve()
-        } else {
-            MapboxNavigationProvider.create(
-                NavigationOptions.Builder(requireContext())
-                    .accessToken(getString(R.string.mapbox_access_token))
-                    // comment out the location engine setting block to disable simulation
-                    .locationEngine(replayLocationEngine)
-                    .build()
-            )
-        }
-        mapboxNavigation.registerRoutesObserver(routesObserver)
-        val mapboxRouteLineOptions = MapboxRouteLineOptions.Builder(requireContext())
-            .withRouteLineBelowLayerId("road-label")
-            .build()
-        routeLineApi = MapboxRouteLineApi(mapboxRouteLineOptions)
-        routeLineView = MapboxRouteLineView(mapboxRouteLineOptions)
-
-        val routeArrowOptions = RouteArrowOptions.Builder(requireContext()).build()
-        routeArrowView = MapboxRouteArrowView(routeArrowOptions)
-
+        initNavigation()
         initMap()
 
         binding.inputCategoryName.setText("cafe")
@@ -125,23 +104,20 @@ class MapFragment : Fragment(),OnMapClickListener  {
 
         binding.addButton.setOnClickListener {
             viewModel.getPOIs(binding.inputCategoryName.text.toString(),binding.inputCategoryLimit.text.toString().toInt())
-            val points:ArrayList<Point> =ArrayList<Point>()
-            viewModel.poiList.observe(viewLifecycleOwner, Observer {
-                    poiList->
-                for(item in poiList){
+            points.clear()
+            points.add(viewModel.currentLocation)
+            viewModel.poiList.observe(viewLifecycleOwner) { poiList ->
+                for (item in poiList) {
 //                item.coordinate?.let { addAnnotationToMap(it.longitude(), it.latitude()) }
                     Timber.i("Item name: ${item.name}; and address: ${item.address}")
                     val markerId = addMarkerAndReturnId(item.coordinate!!)
                     addViewAnnotation(item, markerId)
                     points.add(item.coordinate!!)
                 }
-            })
-            mapView.gestures.addOnMapLongClickListener{
-                findRoute(points)
-                true
             }
         }
     }
+
 
 
     private fun initMap(){
@@ -181,9 +157,10 @@ class MapFragment : Fragment(),OnMapClickListener  {
 //            mapView.getMapboxMap().setCamera(CameraOptions.Builder().bearing(it).build())
 //        }
 
-        val onIndicatorPositionChangedListener = OnIndicatorPositionChangedListener {
+        onIndicatorPositionChangedListener = OnIndicatorPositionChangedListener {
             mapView.getMapboxMap().setCamera(CameraOptions.Builder().center(it).build())
             mapView.gestures.focalPoint = mapView.getMapboxMap().pixelForCoordinate(it)
+            viewModel.currentLocation=it
         }
 
 // Pass the user's location to camera
@@ -203,8 +180,17 @@ class MapFragment : Fragment(),OnMapClickListener  {
 
             override fun onMoveEnd(detector: MoveGestureDetector) {}
         })
+
+        mapView.gestures.addOnMapLongClickListener{
+            drawRoute(points)
+            true
+        }
     }
 
+    override fun onDestroyView() {
+        mapView.location.removeOnIndicatorPositionChangedListener(onIndicatorPositionChangedListener)
+        super.onDestroyView()
+    }
 
 
 //    override fun onMapLongClick(point: Point): Boolean {
@@ -213,6 +199,10 @@ class MapFragment : Fragment(),OnMapClickListener  {
 //        return true
 //    }
 
+
+//  Markers and annotations section
+    private val pointList = CopyOnWriteArrayList<Feature>()
+    private var markerId = 0
     override fun onMapClick(point: Point): Boolean {
         mapboxMap.queryRenderedFeatures(
             RenderedQueryGeometry(mapboxMap.pixelForCoordinate(point)), RenderedQueryOptions(listOf(LAYER_ID), null)
@@ -227,9 +217,6 @@ class MapFragment : Fragment(),OnMapClickListener  {
     }
 
 
-
-    private val pointList = CopyOnWriteArrayList<Feature>()
-    private var markerId = 0
     private fun prepareStyle(styleUri: String, bitmap: Bitmap) = style(styleUri) {
         +image(BLUE_ICON_ID) {
             bitmap(bitmap)
@@ -316,6 +303,31 @@ class MapFragment : Fragment(),OnMapClickListener  {
     private val routeArrowApi: MapboxRouteArrowApi = MapboxRouteArrowApi()
     private lateinit var routeArrowView: MapboxRouteArrowView
 
+    private fun initNavigation() {
+        mapboxNavigation = if (MapboxNavigationProvider.isCreated()) {
+            MapboxNavigationProvider.retrieve()
+        } else {
+            MapboxNavigationProvider.create(
+                NavigationOptions.Builder(requireContext())
+                    .accessToken(getString(R.string.mapbox_access_token))
+                    // comment out the location engine setting block to disable simulation
+                    .locationEngine(replayLocationEngine)
+                    .build()
+            )
+        }
+
+        val mapboxRouteLineOptions = MapboxRouteLineOptions.Builder(requireContext())
+            .withRouteLineBelowLayerId("road-label")
+            .build()
+        routeLineApi = MapboxRouteLineApi(mapboxRouteLineOptions)
+        routeLineView = MapboxRouteLineView(mapboxRouteLineOptions)
+
+        val routeArrowOptions = RouteArrowOptions.Builder(requireContext()).build()
+        routeArrowView = MapboxRouteArrowView(routeArrowOptions)
+        mapboxNavigation.registerRoutesObserver(routesObserver)
+    }
+
+
     private val routesObserver = RoutesObserver { routeUpdateResult ->
         if (routeUpdateResult.routes.isNotEmpty()) {
             // generate route geometries asynchronously and render them
@@ -349,34 +361,20 @@ class MapFragment : Fragment(),OnMapClickListener  {
 
 
 
-    private fun findRoute(points: List<Point>) {
+    private fun drawRoute(points: List<Point>) {
 
         // execute a route request
         // it's recommended to use the
         // applyDefaultNavigationOptions and applyLanguageAndVoiceUnitOptions
         // that make sure the route request is optimized
         // to allow for support of all of the Navigation SDK features
+
         mapboxNavigation.requestRoutes(
             RouteOptions.builder()
                 .applyDefaultNavigationOptions()
                 .applyLanguageAndVoiceUnitOptions(requireContext())
                 .coordinatesList(points)
-//                .coordinates(points.toString())
-//                .coordinates(points[0],null,points[1])
-                // provide the bearing for the origin of the request to ensure
-                // that the returned route faces in the direction of the current user movement
-//                .bearingsList(
-//                    listOf(
-//                        Bearing.builder()
-//                            .angle(originLocation.bearing.toDouble())
-//                            .degrees(45.0)
-//                            .build(),
-//                        null
-//                    )
-//                )
-//                .layersList(listOf(mapboxNavigation.getZLevel(), null))
-//                .layersList(listOf(points.size, null))
-//                .alternatives(true)
+                .profile(DirectionsCriteria.PROFILE_WALKING)
                 .build(),
             object : RouterCallback {
                 override fun onRoutesReady(
