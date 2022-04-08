@@ -20,6 +20,7 @@ class CategorySearchClass() {
 
     private var categorySearchEngine: CategorySearchEngine
     private lateinit var searchRequestTask: SearchRequestTask
+    val boundingBoxSize=0.05
 
     init {
         categorySearchEngine = MapboxSearchSdk.getCategorySearchEngine()
@@ -51,7 +52,12 @@ class CategorySearchClass() {
 
         searchRequestTask = categorySearchEngine.search(
             category_name,
-            CategorySearchOptions(limit = limit),
+            CategorySearchOptions(limit = limit,
+                boundingBox = BoundingBox.fromLngLats(
+                currentLocation.coordinates()[0]-boundingBoxSize,
+                currentLocation.coordinates()[1]-boundingBoxSize,
+                currentLocation.coordinates()[0]+boundingBoxSize,
+                currentLocation.coordinates()[1]+boundingBoxSize)),
             searchCallback
         )
     }
