@@ -36,8 +36,8 @@ class MapFragmentViewModel @Inject constructor(
         categorySearchClass.getPlacesByCategory(category_name =category_name,
             limit = limit,
             currentLocation = currentLocation){ result->
-//            _poiList.value=_poiList.value?.plus(result)
-            _poiList.value=result
+            _poiList.value=_poiList.value?.plus(result)
+//            _poiList.value=result
 //           TODO: CHECK IF NO RESULT!
         }
     }

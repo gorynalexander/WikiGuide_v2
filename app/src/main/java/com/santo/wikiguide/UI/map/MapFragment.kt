@@ -105,13 +105,13 @@ class MapFragment : Fragment(),OnMapClickListener  {
         binding.inputCategoryName.setText("cafe")
         binding.inputCategoryLimit.setText("5")
 
-
         binding.addButton.setOnClickListener {
             viewModel.getPOIs(binding.inputCategoryName.text.toString(),binding.inputCategoryLimit.text.toString().toInt())
-            points.clear()
-            points.add(viewModel.currentLocation)
+
             viewModel.poiList.observe(viewLifecycleOwner) { poiList ->
                 for (item in poiList) {
+                    points.clear()
+                    points.add(viewModel.currentLocation)
 //                item.coordinate?.let { addAnnotationToMap(it.longitude(), it.latitude()) }
                     Timber.i("Item name: ${item.name}; and address: ${item.address}")
                     val markerId = addMarkerAndReturnId(item.coordinate!!)
@@ -122,7 +122,7 @@ class MapFragment : Fragment(),OnMapClickListener  {
 //                Timber.i(points.toString())
                 if(points.size>1){
                     val routeBuilder= RouteBuilder()
-                    routeBuilder.getRoute(3600.0,points){
+                    routeBuilder.getRoute(7200.0,points){
                         result->
                         route=result.first
                         durationWalk=result.second
