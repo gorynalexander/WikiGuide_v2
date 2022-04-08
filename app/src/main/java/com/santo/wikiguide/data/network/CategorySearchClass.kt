@@ -20,7 +20,7 @@ class CategorySearchClass() {
 
     private var categorySearchEngine: CategorySearchEngine
     private lateinit var searchRequestTask: SearchRequestTask
-    val boundingBoxSize=0.05
+    private val boundingBoxSize=0.05
 
     init {
         categorySearchEngine = MapboxSearchSdk.getCategorySearchEngine()
