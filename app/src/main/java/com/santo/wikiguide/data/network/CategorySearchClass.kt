@@ -7,12 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.MutableLiveData
 import com.mapbox.geojson.BoundingBox
 import com.mapbox.geojson.Point
-import com.mapbox.search.CategorySearchEngine
-import com.mapbox.search.CategorySearchOptions
-import com.mapbox.search.MapboxSearchSdk
-import com.mapbox.search.ResponseInfo
-import com.mapbox.search.SearchCallback
-import com.mapbox.search.SearchRequestTask
+import com.mapbox.search.*
 import com.mapbox.search.result.SearchResult
 import timber.log.Timber
 
@@ -20,7 +15,7 @@ class CategorySearchClass() {
 
     private var categorySearchEngine: CategorySearchEngine
     private lateinit var searchRequestTask: SearchRequestTask
-    private val boundingBoxSize=0.05
+    private val boundingBoxSize=0.02
 
     init {
         categorySearchEngine = MapboxSearchSdk.getCategorySearchEngine()
@@ -57,7 +52,8 @@ class CategorySearchClass() {
                 currentLocation.coordinates()[0]-boundingBoxSize,
                 currentLocation.coordinates()[1]-boundingBoxSize,
                 currentLocation.coordinates()[0]+boundingBoxSize,
-                currentLocation.coordinates()[1]+boundingBoxSize)),
+                currentLocation.coordinates()[1]+boundingBoxSize), navigationProfile = SearchNavigationProfile.WALKING
+            ),
             searchCallback
         )
     }
