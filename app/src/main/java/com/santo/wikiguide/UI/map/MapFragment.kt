@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.asynclayoutinflater.view.AsyncLayoutInflater
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -52,6 +53,7 @@ import com.mapbox.navigation.ui.maps.route.line.model.MapboxRouteLineOptions
 import com.mapbox.navigation.ui.maps.route.line.model.RouteLine
 import com.mapbox.search.result.SearchResult
 import com.santo.wikiguide.R
+import com.santo.wikiguide.data.routerBuilder.RouteBuilder
 import com.santo.wikiguide.databinding.FragmentMapBinding
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
@@ -81,6 +83,8 @@ class MapFragment : Fragment(),OnMapClickListener  {
     private var markerHeight = 0
     private val asyncInflater by lazy { context?.let { AsyncLayoutInflater(it) } }
 
+    private lateinit var route:List<Point>
+    private var durationWalk=0.0
 
 
 
@@ -113,6 +117,16 @@ class MapFragment : Fragment(),OnMapClickListener  {
                     val markerId = addMarkerAndReturnId(item.coordinate!!)
                     addViewAnnotation(item, markerId)
                     points.add(item.coordinate!!)
+                }
+
+//                Timber.i(points.toString())
+                if(points.size>1){
+                    val routeBuilder= RouteBuilder()
+                    routeBuilder.getRoute(3600.0,points){
+                        result->
+                        route=result.first
+                        durationWalk=result.second
+                    }
                 }
             }
         }
@@ -373,7 +387,7 @@ class MapFragment : Fragment(),OnMapClickListener  {
             RouteOptions.builder()
                 .applyDefaultNavigationOptions()
                 .applyLanguageAndVoiceUnitOptions(requireContext())
-                .coordinatesList(points)
+                .coordinatesList(route)
                 .profile(DirectionsCriteria.PROFILE_WALKING)
                 .build(),
             object : RouterCallback {
@@ -383,6 +397,7 @@ class MapFragment : Fragment(),OnMapClickListener  {
                 ) {
 //                    setRouteAndStartNavigation(routes)
                     mapboxNavigation.setRoutes(routes)
+                    Toast.makeText(requireContext(),"Route duration: $durationWalk",Toast.LENGTH_LONG).show()
                 }
 
                 override fun onFailure(

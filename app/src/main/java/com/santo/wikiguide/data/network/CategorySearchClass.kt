@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.MutableLiveData
+import com.mapbox.geojson.BoundingBox
+import com.mapbox.geojson.Point
 import com.mapbox.search.CategorySearchEngine
 import com.mapbox.search.CategorySearchOptions
 import com.mapbox.search.MapboxSearchSdk
@@ -27,6 +29,7 @@ class CategorySearchClass() {
     fun getPlacesByCategory(
         category_name: String,
         limit: Int,
+        currentLocation: Point,
         resultListener:SearchResultListener
     ){
         Timber.i("Begin search")
