@@ -9,11 +9,8 @@ import com.santo.wikiguide.data.network.CategorySearchClass
 import com.santo.wikiguide.data.network.ReverseGeocodingClass
 import com.santo.wikiguide.data.repository.LocationRepository
 import com.santo.wikiguide.data.repository.PlacesRepository
-import com.santo.wikiguide.data.routerBuilder.RouteBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
-import timber.log.Timber
 import javax.inject.Inject
-import kotlin.coroutines.coroutineContext
 
 
 @HiltViewModel

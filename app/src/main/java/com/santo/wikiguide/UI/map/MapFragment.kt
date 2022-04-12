@@ -53,11 +53,12 @@ import com.mapbox.navigation.ui.maps.route.line.model.MapboxRouteLineOptions
 import com.mapbox.navigation.ui.maps.route.line.model.RouteLine
 import com.mapbox.search.result.SearchResult
 import com.santo.wikiguide.R
-import com.santo.wikiguide.data.routerBuilder.RouteBuilder
+import com.santo.wikiguide.data.routerBuilder.RouteCircleGreedyBuilder
 import com.santo.wikiguide.databinding.FragmentMapBinding
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.math.roundToInt
 
 
 @MapboxExperimental
@@ -86,6 +87,7 @@ class MapFragment : Fragment(),OnMapClickListener  {
     private lateinit var route:List<Point>
     private var durationWalk=0.0
 
+    var firstUpdate=true
 
 
     override fun onCreateView(
@@ -107,28 +109,6 @@ class MapFragment : Fragment(),OnMapClickListener  {
 
         binding.addButton.setOnClickListener {
             viewModel.getPOIs(binding.inputCategoryName.text.toString(),binding.inputCategoryLimit.text.toString().toInt())
-
-            viewModel.poiList.observe(viewLifecycleOwner) { poiList ->
-                for (item in poiList) {
-                    points.clear()
-                    points.add(viewModel.currentLocation)
-//                item.coordinate?.let { addAnnotationToMap(it.longitude(), it.latitude()) }
-                    Timber.i("Item name: ${item.name}; and address: ${item.address}")
-                    val markerId = addMarkerAndReturnId(item.coordinate!!)
-                    addViewAnnotation(item, markerId)
-                    points.add(item.coordinate!!)
-                }
-
-//                Timber.i(points.toString())
-                if(points.size>1){
-                    val routeBuilder= RouteBuilder()
-                    routeBuilder.getRoute(7200.0,points){
-                        result->
-                        route=result.first
-                        durationWalk=result.second
-                    }
-                }
-            }
         }
     }
 
@@ -175,6 +155,10 @@ class MapFragment : Fragment(),OnMapClickListener  {
             mapView.getMapboxMap().setCamera(CameraOptions.Builder().center(it).build())
             mapView.gestures.focalPoint = mapView.getMapboxMap().pixelForCoordinate(it)
             viewModel.currentLocation=it
+            if(firstUpdate){
+                firstUpdate=false
+                addObserver()
+            }
         }
 
 // Pass the user's location to camera
@@ -201,6 +185,29 @@ class MapFragment : Fragment(),OnMapClickListener  {
         }
     }
 
+    fun addObserver(){
+        viewModel.poiList.observe(viewLifecycleOwner) { poiList ->
+            points.clear()
+            points.add(viewModel.currentLocation)
+            for (item in poiList) {
+//                item.coordinate?.let { addAnnotationToMap(it.longitude(), it.latitude()) }
+                Timber.i("Item name: ${item.name}; and address: ${item.address}")
+                val markerId = addMarkerAndReturnId(item.coordinate!!)
+                addViewAnnotation(item, markerId)
+                points.add(item.coordinate!!)
+            }
+
+//                Timber.i(points.toString())
+            if(points.size>1){
+                val routeBuilder= RouteCircleGreedyBuilder()
+                routeBuilder.getRoute(7200.0,points){
+                        result->
+                    route=result.first
+                    durationWalk=result.second
+                }
+            }
+        }
+    }
     override fun onDestroyView() {
         mapView.location.removeOnIndicatorPositionChangedListener(onIndicatorPositionChangedListener)
         super.onDestroyView()
@@ -397,7 +404,9 @@ class MapFragment : Fragment(),OnMapClickListener  {
                 ) {
 //                    setRouteAndStartNavigation(routes)
                     mapboxNavigation.setRoutes(routes)
-                    Toast.makeText(requireContext(),"Route duration: $durationWalk",Toast.LENGTH_LONG).show()
+                    Toast.makeText(requireContext(),
+                        "Route duration: ${durationWalk.roundToInt()/3600} hour," +
+                                " ${durationWalk.roundToInt()%60} minutes",Toast.LENGTH_LONG).show()
                 }
 
                 override fun onFailure(
