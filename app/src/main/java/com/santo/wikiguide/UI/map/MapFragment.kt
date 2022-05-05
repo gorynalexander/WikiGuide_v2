@@ -4,12 +4,15 @@ import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.asynclayoutinflater.view.AsyncLayoutInflater
+import androidx.core.view.get
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.mapbox.android.gestures.MoveGestureDetector
@@ -53,7 +56,7 @@ import com.mapbox.navigation.ui.maps.route.line.model.MapboxRouteLineOptions
 import com.mapbox.navigation.ui.maps.route.line.model.RouteLine
 import com.mapbox.search.result.SearchResult
 import com.santo.wikiguide.R
-import com.santo.wikiguide.data.routerBuilder.RouteCircleGreedyBuilder
+import com.santo.wikiguide.data.routerBuilder.RouteLineGreedy
 import com.santo.wikiguide.databinding.FragmentMapBinding
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
@@ -71,7 +74,6 @@ class MapFragment : Fragment(),OnMapClickListener  {
     private lateinit var viewAnnotationManager: ViewAnnotationManager
 
 
-
     private lateinit var mapboxNavigation: MapboxNavigation
     private val replayLocationEngine = ReplayLocationEngine(MapboxReplayer())
     private lateinit var onIndicatorPositionChangedListener:OnIndicatorPositionChangedListener
@@ -85,10 +87,12 @@ class MapFragment : Fragment(),OnMapClickListener  {
     private val asyncInflater by lazy { context?.let { AsyncLayoutInflater(it) } }
 
     private lateinit var route:List<Point>
-    private var durationWalk=0.0
+    private var durationWalk=ArrayList<Double>()
+    var I=0
 
     var firstUpdate=true
 
+    private lateinit var destinationPoint: Point
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -180,7 +184,8 @@ class MapFragment : Fragment(),OnMapClickListener  {
         })
 
         mapView.gestures.addOnMapLongClickListener{
-            drawRoute(points)
+            drawRoute(listOf(viewModel.currentLocation,destinationPoint))
+            drawRoute(route)
             true
         }
     }
@@ -188,7 +193,6 @@ class MapFragment : Fragment(),OnMapClickListener  {
     fun addObserver(){
         viewModel.poiList.observe(viewLifecycleOwner) { poiList ->
             points.clear()
-            points.add(viewModel.currentLocation)
             for (item in poiList) {
 //                item.coordinate?.let { addAnnotationToMap(it.longitude(), it.latitude()) }
                 Timber.i("Item name: ${item.name}; and address: ${item.address}")
@@ -199,11 +203,29 @@ class MapFragment : Fragment(),OnMapClickListener  {
 
 //                Timber.i(points.toString())
             if(points.size>1){
-                val routeBuilder= RouteCircleGreedyBuilder()
-                routeBuilder.getRoute(7200.0,points){
-                        result->
-                    route=result.first
-                    durationWalk=result.second
+//                FOR CIRCLE ROUTE
+//                val routeBuilder= RouteCircleGreedyBuilder()
+//                routeBuilder.getRoute(7200.0, startPoint = viewModel.currentLocation ,points){
+//                        result->
+//                    route=result.first
+//                    durationWalk=result.second
+//                }
+//                    #FOR_LINE_ROUTE
+//    TODO Fix bug: need first initialize destination point, then add points
+                if(this::destinationPoint.isInitialized){
+                    val routeBuilder= RouteLineGreedy()
+                    routeBuilder.getRoute(
+                        1000.0,
+                        viewModel.currentLocation,
+                        destinationPoint,
+                        points){
+                            result->
+                        route=result
+//                        durationWalk=result
+                    }
+                }
+                else{
+                    Toast.makeText(requireContext(),"Add a destination point",Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -225,6 +247,9 @@ class MapFragment : Fragment(),OnMapClickListener  {
     private val pointList = CopyOnWriteArrayList<Feature>()
     private var markerId = 0
     override fun onMapClick(point: Point): Boolean {
+        destinationPoint=point
+        addMarkerAndReturnId(destinationPoint)
+//        TODO Remove marker
         mapboxMap.queryRenderedFeatures(
             RenderedQueryGeometry(mapboxMap.pixelForCoordinate(point)), RenderedQueryOptions(listOf(LAYER_ID), null)
         ) {
@@ -394,19 +419,47 @@ class MapFragment : Fragment(),OnMapClickListener  {
             RouteOptions.builder()
                 .applyDefaultNavigationOptions()
                 .applyLanguageAndVoiceUnitOptions(requireContext())
-                .coordinatesList(route)
+                .coordinatesList(points)
                 .profile(DirectionsCriteria.PROFILE_WALKING)
+                .overview(DirectionsCriteria.OVERVIEW_FULL)
                 .build(),
             object : RouterCallback {
                 override fun onRoutesReady(
                     routes: List<DirectionsRoute>,
                     routerOrigin: RouterOrigin
                 ) {
+//                    #FOR_LINE_ROUTE
+//                    durationWalk=0.0
+                    durationWalk.add(0.0)
+                    for(route in routes){
+                        durationWalk[I]+=route.duration()
+                    }
 //                    setRouteAndStartNavigation(routes)
-                    mapboxNavigation.setRoutes(routes)
-                    Toast.makeText(requireContext(),
-                        "Route duration: ${durationWalk.roundToInt()/3600} hour," +
-                                " ${durationWalk.roundToInt()%60} minutes",Toast.LENGTH_LONG).show()
+                    mapboxNavigation.setRoutes(
+                        mapboxNavigation.getRoutes().plus(routes))
+//                    Toast.makeText(requireContext(),
+//                        "Route duration: ${durationWalk.roundToInt()/3600} hour," +
+//                                " ${(durationWalk.roundToInt()/60)%60} minutes",Toast.LENGTH_LONG).show()
+
+
+                    if(I==1) {
+
+                        val inflater = layoutInflater
+                        val layout = inflater.inflate(
+                            R.layout.custom_toast,
+                            view?.findViewById(R.id.toast_layout_root) as ViewGroup?
+                        )
+                        layout.findViewById<TextView>(R.id.text_duration_short).text =
+                            "Fast "+getDurationWalkString(durationWalk[0])
+                        layout.findViewById<TextView>(R.id.text_duration_long).text =
+                            "Long "+getDurationWalkString(durationWalk[1])
+                        val toast =  Toast(requireContext());
+                        //                    toast.setGravity(Gravity.CENTER_VERTICAL, 0, 0);
+                        toast.duration = Toast.LENGTH_LONG;
+                        toast.view = layout;
+                        toast.show();
+                    }
+                    I++
                 }
 
                 override fun onFailure(
@@ -421,5 +474,9 @@ class MapFragment : Fragment(),OnMapClickListener  {
                 }
             }
         )
+    }
+    fun getDurationWalkString(duration:Double):String{
+        return "route duration: ${duration.roundToInt()/3600} hour," +
+                                " ${(duration.roundToInt()/60)%60} minutes"
     }
 }

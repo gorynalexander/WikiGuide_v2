@@ -8,25 +8,31 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import timber.log.Timber
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashSet
 
-class RouteCircleGreedyBuilder {
+class RouteCircleGreedy : RouteBuilder() {
     val weightScore=10000
     val weightTime=1
 
     lateinit var durationsMatrix: List<Array<Double>>
 
-    fun getRoute(timeLimit:Double,points:List<Point>,resultListener: routeResultListener){
+    override
+    fun getRoute(timeLimit:Double, startPoint:Point, pointsToVisit:List<Point>, circleResultListener: routeCircleResultListener){
+        val points= pointsToVisit.plus(startPoint)
+        Collections.reverse(points)
         getMatrix(points){
             val result=getOrder(timeLimit,points)
             val route=ArrayList<Point>()
             for(i in 0 until result.first.size){
                 route.add(points[result.first[i]])
             }
-            resultListener.onRouteResult(Pair(route,result.second))
+            circleResultListener.onRouteResult(Pair(route,result.second))
         }
     }
 
-
+    override
     fun getOrder(timeLimit:Double, points: List<Point>): Pair<ArrayList<Int>, Double> {
         val N=points.size
         val scores=ArrayList<Double>()
@@ -39,7 +45,7 @@ class RouteCircleGreedyBuilder {
             weightMatrix.add(ArrayList())
             for (j in 0 until N){
                 if(i==j)
-                    weightMatrix[i].add(Pair(j,-20000.0))
+                    weightMatrix[i].add(Pair(j,-INF))
                 else
                     weightMatrix[i].add(Pair(j,scores[j]*weightScore-weightTime*durationsMatrix[i][j]))
             }
@@ -76,13 +82,7 @@ class RouteCircleGreedyBuilder {
         }
         return Pair(order,time)
    }
-
-    private fun getScore(point: Point): Double {
-//        TODO("Not yet implemented")
-        return 1.0
-    }
-
-    fun getMatrix(points:List<Point>,resultListener: matrixResultListener){
+    fun getMatrix(points:List<Point>, resultListener: matrixResultListener){
 
 //       TODO: change hardcode
         val matrixApiClient= MapboxMatrix.builder()
@@ -106,7 +106,5 @@ class RouteCircleGreedyBuilder {
     fun interface matrixResultListener{
         fun onMatrixResult(results: List<Array<Double>>)
     }
-    fun interface routeResultListener{
-        fun onRouteResult(result: Pair<ArrayList<Point>, Double> )
-    }
+
 }
